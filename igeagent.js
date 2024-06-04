@@ -244,4 +244,4 @@ async function someLLMApiCall(prompt, model, history) {
     // Implement the actual API call to the LLM service
 }
 
-module.exports = IGEAgent;
+module.exports = { IGEAgent };

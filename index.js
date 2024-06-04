@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const { IGEAgent } = require('./IGEAgent');
 
 const relayUrl = "wss://magency.nostr1.com";
 const wsClient = new WebSocket(relayUrl);
