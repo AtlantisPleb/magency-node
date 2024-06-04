@@ -1,34 +1,44 @@
-// Import the NDK package
-const NDK = require('@nostr-dev-kit/ndk').default;
+const WebSocket = require('ws');
 
-// Replace with your desired relay URL
 const relayUrl = "wss://magency.nostr1.com";
+const wsClient = new WebSocket(relayUrl);
 
-// Create a new NDK instance with the specified relay
-const ndk = new NDK({
-    explicitRelayUrls: [relayUrl]
+wsClient.on('open', () => {
+    console.log("Connected to relay");
+
+    // Example of sending a subscription request to listen for all text notes (kind 1)
+    const subscriptionId = "sub1";
+    wsClient.send(JSON.stringify(["REQ", subscriptionId, { kinds: [1] }]));
 });
 
-// Connect to the relay
-async function connectAndListen() {
-    try {
-        await ndk.connect();
-        console.log(`Connected to relay: ${relayUrl}`);
+wsClient.on('message', (data) => {
+    const message = JSON.parse(data);
 
-        // Define the filter to listen for "kind: 1" events
-        const filter = { kinds: [1] };
-
-        // Subscribe to events with the specified filter
-        ndk.subscribe(filter, {
-            onEvent(event) {
-                console.log("Received event:", event);
-                console.log("Event content:", event.content);
-            },
-        });
-    } catch (err) {
-        console.error("Error connecting to relay:", err);
+    if (message[0] === "EVENT") {
+        const subscriptionId = message[1];
+        const event = message[2];
+        console.log(`Received event for subscription ${subscriptionId}:`, event);
+    } else if (message[0] === "OK") {
+        console.log(`Event response: ${message[1]}, accepted: ${message[2]}, message: ${message[3]}`);
+    } else if (message[0] === "EOSE") {
+        const subscriptionId = message[1];
+        console.log(`End of stored events for subscription ${subscriptionId}`);
+    } else if (message[0] === "CLOSED") {
+        const subscriptionId = message[1];
+        const closeMessage = message[2];
+        console.log(`Subscription ${subscriptionId} closed. Reason: ${closeMessage}`);
+    } else if (message[0] === "NOTICE") {
+        console.log(`Notice: ${message[1]}`);
     }
-}
+});
 
-// Start the connection and subscription
-connectAndListen();
+wsClient.on('error', (err) => {
+    console.error("Error connecting to relay:", err);
+});
+
+// Keep the connection alive by pinging the server every 30 seconds
+setInterval(() => {
+    if (wsClient.readyState === WebSocket.OPEN) {
+        wsClient.send(JSON.stringify({ type: "ping" }));
+    }
+}, 30000);
