@@ -35,10 +35,3 @@ wsClient.on('message', (data) => {
 wsClient.on('error', (err) => {
     console.error("Error connecting to relay:", err);
 });
-
-// Keep the connection alive by pinging the server every 30 seconds
-setInterval(() => {
-    if (wsClient.readyState === WebSocket.OPEN) {
-        wsClient.send(JSON.stringify({ type: "ping" }));
-    }
-}, 30000);
