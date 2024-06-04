@@ -1,3 +1,28 @@
+/**
+  * Here's an overview of the Intelligent Go-Explore (IGE) algorithm's implementation:
+  * 1. User Prompt: The user provides a prompt or instruction for the agent, such as "What can you learn from the newest papers on arxiv.org?"* System Prompt: The system generates a prompt for the foundation model, providing context about the environment and the IGE strategy. This prompt is dynamic and adapted to different environments.
+  * 2. State Selection Prompt: The foundation model is queried to select the most promising state from the archive. The prompt includes a list of discovered states and asks the model to choose a numerical index representing the selected state.
+  * 3. Action Selection Prompt: Based on the selected state, the foundation model is prompted to choose the next action to explore from that state. The prompt includes the current state and the history of previously tried actions.
+  * 4. Archive Filtering Prompt: After taking the selected action, the foundation model is queried again to judge whether the new state is interesting and should be added to the archive. The prompt includes the current archive and the new state.
+  * 5. Repeat: The above steps are repeated for a specified number of iterations or until a desired outcome is achieved.
+  * 6. Visualization: The results of the exploration are presented to the user in a user-friendly format, such as a summary of key findings.
+  */
+
+ const ENV_DESCRIPTION = `You are an agent in a sandboxed web environment.
+ You have access to tools and can interact with the environment.
+ `;
+
+ const REACT_IGE_SYSTEM_MESSAGE = ENV_DESCRIPTION + `
+ You will be prompted to perform systematic exploration in the style of Go-Explore.
+ An archive will be maintained of interesting states found.
+ You will be prompted to first reason about your plan and then:
+ - Select a state from the archive that is the most promising, i.e., likely to lead to a solution or more novel states.
+ - Explore from states intelligently, by picking new actions.
+ - For each new state, you will be asked to decide if the state is interestingly new and should be added to the archive.
+ You have #HORIZON# steps to complete the task.
+ `;
+
+
 const { randomInt } = require('crypto');
 const axios = require('axios'); // For making API calls, such as calling the LLM service
 
@@ -32,7 +57,7 @@ class IGEAgent {
         this.horizon = horizon;
         this.model = model;
         this.filterActions = filterActions;
-        this.systemMessage = react_ige_system_message.replace('#HORIZON#', horizon.toString()); // Formatted message for LLM
+        this.systemMessage = REACT_IGE_SYSTEM_MESSAGE.replace('#HORIZON#', horizon.toString()); // Formatted message for LLM
         this.banList = [];
 
         this.archive = []; // Stores observation-action pairs
