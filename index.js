@@ -7,10 +7,8 @@ const wsClient = new WebSocket(relayUrl);
 // import parseKind38000
 const { parseKind38000 } = require('./router');
 
-// Initialize IGEAgent
-const horizon = 100;  // Example horizon
-const model = 'gpt-4o';  // Replace with your actual model ID
-const agent = new IGEAgent(horizon, model);  // Initialize IGEAgent
+// Initialize IGEAgent. For now one per instance. In the future, multiple.
+const agent = new IGEAgent();
 
 wsClient.on('open', () => {
     console.log("Connected to relay");
