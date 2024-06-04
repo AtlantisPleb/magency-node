@@ -3,6 +3,9 @@ const WebSocket = require('ws');
 const relayUrl = "wss://magency.nostr1.com";
 const wsClient = new WebSocket(relayUrl);
 
+// import parseKind38000
+const { parseKind38000 } = require('./router');
+
 wsClient.on('open', () => {
     console.log("Connected to relay");
 
@@ -18,6 +21,9 @@ wsClient.on('message', (data) => {
         const subscriptionId = message[1];
         const event = message[2];
         console.log(`Received event for subscription ${subscriptionId}:`, event);
+        if (event.kind === 38000) {
+          parseKind38000(event);  // Call the router function for event kind 38000
+        }
     } else if (message[0] === "OK") {
         console.log(`Event response: ${message[1]}, accepted: ${message[2]}, message: ${message[3]}`);
     } else if (message[0] === "EOSE") {
