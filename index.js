@@ -18,9 +18,9 @@ wsClient.on('message', (data) => {
     const message = JSON.parse(data);
 
     if (message[0] === "EVENT") {
-        const subscriptionId = message[1];
+        // const subscriptionId = message[1];
         const event = message[2];
-        console.log(`Received event for subscription ${subscriptionId}:`, event);
+        console.log(`Received event kind ${event.kind} - ${event.id}`);
         if (event.kind === 38000) {
           parseKind38000(event);  // Call the router function for event kind 38000
         }
@@ -28,7 +28,7 @@ wsClient.on('message', (data) => {
         console.log(`Event response: ${message[1]}, accepted: ${message[2]}, message: ${message[3]}`);
     } else if (message[0] === "EOSE") {
         const subscriptionId = message[1];
-        console.log(`End of stored events for subscription ${subscriptionId}`);
+        console.log(`EOSE`);
     } else if (message[0] === "CLOSED") {
         const subscriptionId = message[1];
         const closeMessage = message[2];
