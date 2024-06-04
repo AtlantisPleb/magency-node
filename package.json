@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/AtlantisPleb/magency-node/issues"
   },
-  "homepage": "https://github.com/AtlantisPleb/magency-node#readme"
+  "homepage": "https://github.com/AtlantisPleb/magency-node#readme",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
 }
