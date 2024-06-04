@@ -6,6 +6,11 @@ const wsClient = new WebSocket(relayUrl);
 // import parseKind38000
 const { parseKind38000 } = require('./router');
 
+// Initialize IGEAgent
+const horizon = 100;  // Example horizon
+const model = 'gpt-4o';  // Replace with your actual model ID
+const agent = new IGEAgent(horizon, model);  // Initialize IGEAgent
+
 wsClient.on('open', () => {
     console.log("Connected to relay");
 
@@ -22,7 +27,7 @@ wsClient.on('message', (data) => {
         const event = message[2];
         console.log(`Received event kind ${event.kind} - ${event.id}`);
         if (event.kind === 38000) {
-          parseKind38000(event);  // Call the router function for event kind 38000
+          parseKind38000(event, agent);
         }
     } else if (message[0] === "OK") {
         console.log(`Event response: ${message[1]}, accepted: ${message[2]}, message: ${message[3]}`);
