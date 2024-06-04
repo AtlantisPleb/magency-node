@@ -11,7 +11,7 @@ wsClient.on('open', () => {
 
     // Example of sending a subscription request to listen for all text notes (kind 1)
     const subscriptionId = "sub1";
-    wsClient.send(JSON.stringify(["REQ", subscriptionId, { kinds: [38000] }]));
+    wsClient.send(JSON.stringify(["REQ", subscriptionId, { kinds: [38000], limit: 1 }]));
 });
 
 wsClient.on('message', (data) => {
