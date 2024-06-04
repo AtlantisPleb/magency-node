@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/AtlantisPleb/magency-node#readme",
   "dependencies": {
+    "@nostr-dev-kit/ndk": "^2.8.2",
     "express": "^4.19.2"
   }
 }
