@@ -57,6 +57,7 @@ class IGEAgent {
     this.actsQueue = [...chosenState.actsQueue]; // Reset actions queue.
     this.stepCount = chosenState.stepCount; // Set step count.
     console.log(`Restored to state with stepCount: ${this.stepCount}, actions queue length: ${this.actsQueue.length}`);
+    console.log("We are now at: ", chosenState.observation.descriptions);
   }
 
   /**
@@ -72,11 +73,12 @@ class IGEAgent {
    */
   async chooseNewState() {
     const prompt = this.generatePrompt();
-    console.log(`Generated prompt for LLM: ${prompt}`);
+    // console.log(`Generated prompt for LLM: ${prompt}`);
     const messages = [{ role: "system", content: "You are an agent. Respond in JSON." }, { role: "user", content: prompt }];
     const response = await getLLMResponse(messages, 'gpt-4-turbo');
     const choice = JSON.parse(response).choice;
     let state = Object.values(this.archive)[choice];
+    console.log("----")
     console.log(`Chosen state index: ${choice}, with stepCount: ${state.stepCount}`);
     this.resetState(state);
 
