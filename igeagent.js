@@ -1,26 +1,33 @@
 const { NostrEvent } = require("@nostr-dev-kit/ndk");
 
 /**
- * A basic agent implementing Intelligent Go-Explore (IGE) in a web environment,
- *  using a shared archive & registry of actions via the Nostr protocol.
+ * A basic agent implementing Intelligent Go-Explore (IGE) in a web environment
+ *  and using shared archive & registry of actions via the Nostr protocol.
  */
 class IGEAgent {
-  constructor() {
+  /**
+   * The agent spawns from a Magency Wish event.
+   * @param {NostrEvent} event - The kind 38000 event
+   * @returns {Object} The response data.
+   */
+  constructor(event) {
+    this.event = event;
+    this.goal = event.content;
     this.history = []; // Later rebuild this from local file or Nostr events
     this.actions = this.initializeActions(); // Hardcoded for now: later populate from NIP90
+    console.log(`[IGEAgent-${event.id.slice(0, 8)}] ` + "Goal: " + this.goal);
+    this.explore();
   }
+
   /**
-   * Begin exploration process for a given prompt.
+   * Begin exploration process for a given event.
    * @param {NostrEvent} event - The event
+   * @returns {Object} The response data.
    */
-  parseEvent(event) {
-    console.log("Parsing event kind " + event.kind + ", id: " + event.id);
-    // If the event is kind 38000, parse a Magency prompt
-    if (event.kind === 38000) {
-      this.explore(event);
-    } else {
-      console.log("Unhandled event kind", event.kind);
-    }
+   explore() {
+    // Get the history for this event
+    const history = this.getHistory();
+    // Given the history and available actions, decide what to do next
   }
 
   /**
@@ -28,7 +35,8 @@ class IGEAgent {
    * @param {NostrEvent} event - The event
    * @returns {Object} The event history.
    */
-  getHistory(event) {
+  getHistory() {
+    let event = this.event
     // Look up history by event.id
     let thisEventHistory;
     if (this.history.find((element) => element.id === event.id)) {
@@ -40,16 +48,6 @@ class IGEAgent {
       this.history.push(thisEventHistory);
     }
     return thisEventHistory;
-  }
-
-  /**
-   * Begin exploration process for a given prompt.
-   * @param {NostrEvent} event - The event
-   * @returns {Object} The response data.
-   */
-  explore(event) {
-    const thisEventHistory = this.getHistory(event);
-    console.log("This event history:", thisEventHistory);
   }
 
   /**

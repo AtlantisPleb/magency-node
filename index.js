@@ -4,9 +4,6 @@ const { IGEAgent } = require('./IGEAgent');
 const relayUrl = "wss://magency.nostr1.com";
 const wsClient = new WebSocket(relayUrl);
 
-// Initialize IGEAgent. For now one per instance. In the future, multiple.
-const agent = new IGEAgent();
-
 wsClient.on('open', () => {
     console.log("Connected to relay");
 
@@ -22,7 +19,11 @@ wsClient.on('message', (data) => {
         // const subscriptionId = message[1];
         const event = message[2];
         console.log(`Received event kind ${event.kind} - ${event.id}`);
-        agent.parseEvent(event);
+
+        // If this is a kind 38000, spawn an IGEAgent to parse the event
+        if (event.kind === 38000) {
+          new IGEAgent(event);
+        }
     } else if (message[0] === "OK") {
         console.log(`Event response: ${message[1]}, accepted: ${message[2]}, message: ${message[3]}`);
     } else if (message[0] === "EOSE") {
