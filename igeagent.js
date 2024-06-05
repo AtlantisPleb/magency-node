@@ -90,11 +90,108 @@ class IGEAgent {
    */
   exploreNextStep() {
     console.log(`Continuing exploration from step count: ${this.stepCount}`);
+
     if (this.stepCount < 10) {
-      this.chooseNewState();
+      // Step 1: Check if we need to choose a new state
+      const selectedState = this.chooseNewState();
+
+      if (selectedState) {
+        console.log('Chosen new state from archive:', selectedState);
+        this.currentState = selectedState;
+      } else {
+        console.log('Continuing with current state:', this.currentState);
+      }
+
+      // Step 2: Select the next action to take
+      const actionIndex = this.selectNextAction(this.currentState);
+      console.log('Selected action index:', actionIndex);
+
+      // Execute the action and observe the result
+      const actionResult = this.executeAction(actionIndex);
+      const nextState = actionResult.newState;
+      const reward = actionResult.reward;
+      const done = actionResult.done;
+      const infos = actionResult.infos;
+
+      this.currentState = nextState;
+      this.stepCount += 1;
+
+      // Step 3: Decide if new state should be added to the archive
+      if (this.shouldAddToArchive(infos)) {
+        this.archive.push(this.currentState);
+        console.log('Added new state to archive:', this.currentState);
+      }
+
+      // Recursive call to continue exploration
+      this.exploreNextStep();
+
     } else {
+      // Step 4: Termination of exploration
       console.log('Exploration complete.');
     }
+  }
+
+  // Helper function for deciding whether to add the state to the archive
+  shouldAddToArchive(infos) {
+    // Generate a prompt to ask GPT if it should be added to the archive
+    let prompt = `Should the new state be added to the archive?\nNew state:\n${infos.description}\n`;
+    prompt += "Choices:\n0. Don't Add\n1. Add";
+
+    const addIndex = this.askGPT(prompt);
+    return addIndex === 1;
+  }
+
+  // Mock GPT interface (replace with actual GPT integration)
+  askGPT(prompt) {
+    // Placeholder logic for calling GPT and getting an index choice
+    console.log('GPT prompt:', prompt);
+    return Math.floor(Math.random() * 2);  // Simulate GPT choice
+  }
+
+  // Helper function for choosing a new state
+  chooseNewState() {
+    // Logic for selecting a new state from the archive, similar to get_filtered_states
+    const choices = this.archive.filter(state => state.actionsRemaining.length > 0);
+    if (choices.length === 0) {
+      return null;
+    }
+
+    // Generate prompt and ask GPT which state to choose
+    const prompt = `Select a state from the following options:\n`;
+    choices.forEach((state, index) => {
+      prompt += `${index}: ${state.description}\n`;
+    });
+    prompt += "Select an index between 0 and " + (choices.length - 1);
+
+    const stateIndex = this.askGPT(prompt);
+    return choices[stateIndex];
+  }
+
+  // Helper function for selecting the next action based on the current state
+  selectNextAction(state) {
+    // Logic for generating the prompt and asking GPT to select the best action
+    let prompt = `Based on the current state, select the next action:\n${state.description}\nAction options:\n`;
+    actionList.forEach((action, index) => {
+      prompt += `${index}: ${action}\n`;
+    });
+    prompt += "Select an index between 0 and " + (actionList.length - 1);
+
+    const actionIndex = this.askGPT(prompt);
+    return actionIndex;
+  }
+
+  // Helper function to execute the selected action
+  executeAction(action) {
+    // Logic for executing the action and observing the result
+    // Here we assume a method env.step(action) that returns the required result
+    throw new Error("executeAction not implemented.");
+    const result = env.step(action);
+    return {
+      newState: result.newState,
+      reward: result.reward,
+      done: result.done,
+      infos: result.infos
+    };
   }
 
   /**
