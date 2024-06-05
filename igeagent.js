@@ -1,5 +1,5 @@
 const { NostrEvent } = require("@nostr-dev-kit/ndk");
-const { getLLMResponse, openai } = require('./openai')
+const { getLLMResponse, openai } = require('./openai');
 
 /**
  * @typedef {Object} Observation
@@ -30,19 +30,20 @@ const { getLLMResponse, openai } = require('./openai')
 
 /**
  * A basic agent implementing Intelligent Go-Explore (IGE) in a web environment
- * and using shared 1) history archive & 2) registry of actions via the Nostr protocol.
+ * and using a shared history archive and registry of actions via the Nostr protocol.
  */
 class IGEAgent {
   /**
    * The agent spawns from a Magency Wish event.
-   * @param {NostrEvent} event - The kind 38000 event
+   * @param {NostrEvent} event - The kind 38000 event.
    */
   constructor(event) {
     this.event = event;
     this.goal = event.content;
-    this.history = []; // Later rebuild this from local file or Nostr events
-    this.actions = this.initializeActions(); // Hardcoded for now: later populate from NIP90
-    this.archive = this.initializeArchive(); // Initialize the archive
+    this.history = []; // Later rebuild this from local file or Nostr events.
+    this.actions = this.initializeActions(); // Hardcoded for now: later populate from NIP90.
+    this.archive = this.initializeArchive(); // Initialize the archive.
+    this.stepCount = 0; // Initialize step count.
     console.log(`[IGEAgent-${event.id.slice(0, 8)}] Goal: ${this.goal}`);
     this.explore();
   }
@@ -52,17 +53,17 @@ class IGEAgent {
    * @param {ArchiveState} chosenState - The state to reset to.
    */
   resetState(chosenState) {
-    this.history = []; // Clear history
-    this.actsQueue = [...chosenState.actsQueue]; // Reset actions queue
-    this.stepCount = chosenState.stepCount; // Set step count
-    console.log(`State reset to chosen state with stepCount: ${this.stepCount}`);
+    this.history = []; // Clear history.
+    this.actsQueue = [...chosenState.actsQueue]; // Reset actions queue.
+    this.stepCount = chosenState.stepCount; // Set step count.
+    console.log(`Restored to state with stepCount: ${this.stepCount}, actions queue length: ${this.actsQueue.length}`);
   }
 
   /**
    * Begin exploration process for a given event.
    */
   explore() {
-    // Given the history and available actions, decide what to do next
+    console.log(`Starting exploration from step count: ${this.stepCount}`);
     this.chooseNewState();
   }
 
@@ -71,23 +72,14 @@ class IGEAgent {
    */
   async chooseNewState() {
     const prompt = this.generatePrompt();
-    console.log("------")
-    console.log(prompt);
-    console.log("------")
-    // Logic to choose a new state based on user or model feedback
-    // Construct the messages to be sent to the LLM
+    console.log(`Generated prompt for LLM: ${prompt}`);
     const messages = [{ role: "system", content: "You are an agent. Respond in JSON." }, { role: "user", content: prompt }];
-    let response = await getLLMResponse(messages, 'gpt-4-turbo')
-    console.log(response)
-    let choice = JSON.parse(response).choice;
-    // Select the state based on the choice
+    const response = await getLLMResponse(messages, 'gpt-4-turbo');
+    const choice = JSON.parse(response).choice;
     let state = Object.values(this.archive)[choice];
-    console.log(`Selected state:`, state);
-
-    // Reset state to the selected state
+    console.log(`Chosen state index: ${choice}, with stepCount: ${state.stepCount}`);
     this.resetState(state);
 
-    // Continue exploration after resetting the state
     this.exploreNextStep();
   }
 
@@ -95,13 +87,11 @@ class IGEAgent {
    * Continue exploration based on the new state.
    */
   exploreNextStep() {
-    // Your logic for the next steps of exploration
-    console.log(`Exploring from step count: ${this.stepCount}`);
-    // For example, you could have some logic to decide what to do next based on history, steps, etc.
-    if (this.stepCount < 10) { // Hypothetical end condition for exploration
-      this.chooseNewState(); // Continue the exploration loop
+    console.log(`Continuing exploration from step count: ${this.stepCount}`);
+    if (this.stepCount < 10) {
+      this.chooseNewState();
     } else {
-      console.log(`Exploration complete.`);
+      console.log('Exploration complete.');
     }
   }
 
@@ -116,9 +106,7 @@ class IGEAgent {
       prompt += `${i}. Timestep ${stateInfo.stepCount}: ${description}.\n`;
     });
     prompt += `Select a state index between 0 and ${Object.keys(this.archive).length - 1}:\n`;
-    prompt += `Reply concisely and exactly with the following JSON format:
-{"choice": X}
-where X is the index of the desired choice.`;
+    prompt += `Reply concisely and exactly with the following JSON format:\n{"choice": X}\nwhere X is the index of the desired choice.`;
     return prompt;
   }
 
