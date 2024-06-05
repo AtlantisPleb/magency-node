@@ -106,11 +106,10 @@ class IGEAgent {
       ];
 
       // Get the response from the LLM.
-      const response = await getLLMResponse(messages, 'gpt-4-turbo');
-      console.log(`Received response from LLM: ${response}`);
+      const parsedResponse = await getLLMResponse(messages);
+      console.log(`Received response from LLM:`, parsedResponse);
 
-      // Parse the LLM's response and extract the chosen state index.
-      const parsedResponse = JSON.parse(response);
+      // Extract the chosen state index.
       const choice = parsedResponse.choice;
 
       // Validate the choice against the archive.
@@ -142,10 +141,10 @@ class IGEAgent {
     console.log(`Continuing exploration from step count: ${this.stepCount}`);
 
     if (this.stepCount < 10) {
-      const actionIndex = this.selectNextAction(this.currentState);
+      const actionIndex = await this.selectNextAction(this.currentState);
       console.log('Selected action index:', actionIndex);
 
-      const actionResult = this.executeAction(actionIndex);
+      const actionResult = await this.executeAction(actionIndex);
       this.currentState = actionResult.newState;
       this.stepCount += 1;
 
@@ -166,9 +165,10 @@ class IGEAgent {
    * @param {Infos} infos - Information about the new state.
    * @returns {boolean} - Whether the new state should be added to the archive.
    */
-  shouldAddToArchive(infos) {
+  async shouldAddToArchive(infos) {
     const prompt = `Should the new state be added to the archive?\nNew state:\n${infos.description}\nChoices:\n0. Don't Add\n1. Add`;
-    const addIndex = this.askGPT(prompt);
+    throw new Error('implement shouldaddtotarchive')
+    const addIndex = await this.askGPT(prompt);
     return addIndex === 1;
   }
 
@@ -177,10 +177,30 @@ class IGEAgent {
    * @param {string} prompt - The prompt to provide to GPT.
    * @returns {number} - The response from GPT.
    */
-  askGPT(prompt) {
-    console.log('GPT prompt:', prompt);
-    throw new Error("Now implement askGPT.")
-    return Math.floor(Math.random() * 2);
+  async askGPT(prompt) {
+    console.log("------\nGPT prompt:");
+    console.log(prompt)
+    console.log("------")
+
+    // Define the messages to send to the LLM.
+    const messages = [
+      { role: "system", content: "You are an agent. Respond in JSON." },
+      { role: "user", content: prompt }
+    ];
+
+    // Get the response from the LLM.
+    const parsedResponse = await getLLMResponse(messages);
+    console.log(`Received response from LLM:`, parsedResponse);
+
+    // Parse the LLM's response and extract the chosen state index.
+    // const parsedResponse = JSON.parse(response);
+    // const choice = parsedResponse.choice;
+    // const comment = parsedResponse.comment;
+
+    // console.log("LLM CHOSE ", choice, "WITH COMMENT: ", comment);
+    // throw new Error("now send it")
+
+    return parsedResponse
   }
 
   /**
@@ -189,50 +209,64 @@ class IGEAgent {
    * @returns {number} - The index of the selected action.
    * @throws {Error} - If the state structure is invalid.
    */
-  selectNextAction(state) {
+  async selectNextAction(state) {
     console.log("Current state: ", state);
     if (!state || !state.observation || !state.observation.descriptions) {
       console.error("Invalid state structure found in state:", state);
       throw new Error('Invalid state structure');
     }
 
-    let prompt = `Based on the current state, select the next action:\n${state.observation.descriptions.join(', ')}\nAction options:\n`;
+    let prompt = systemPrompt
+    prompt += `Based on the current state, select the next action:\nSTATE: ${state.observation.descriptions.join(', ')}\nACTION OPTIONS:\n`;
     actionList.forEach((action, index) => {
       prompt += `${index}: ${action}\n`;
     });
     prompt += "Select an index between 0 and " + (actionList.length - 1);
+    prompt += `Reply concisely and exactly with the following JSON format:\n{"choice": X, "comment": Y}\nwhere X is the index of the desired choice and Y is a one-sentence comment explaining your choice.`;
 
-    const actionIndex = this.askGPT(prompt);
-    return actionIndex;
+    const actionIndex = await this.askGPT(prompt);
+    const { choice, comment } = actionIndex;
+    console.log("GPT chose action index:", choice, "with comment:", comment);
+    return choice;
   }
 
   /**
-   * Execute a selected action and return the result.
+   * Execute a selected action and return the result. (Simulated example)
    * @param {number} action - The index of the action to execute.
    * @returns {Object} - The result of executing the action.
    */
-  executeAction(action) {
-    console.log("Executing action:", action);
-    // Simulated example; you need to replace it with real implementation
-    throw new Error("update outdated executeAction function.")
-    const result = env.step(action);
+   async executeAction(actionIndex) {
+    console.log("Executing action index:", actionIndex);
+
+    // Look up the action by index from the actionList
+    const actionPrompt = actionList[actionIndex];
+    console.log("Executing action:", actionPrompt);
+
+    // Get LLM response for the action
+    const prompt = `Give simulated answers for the following action:\n${actionPrompt}\nProvide the new state details in the JSON format: {"newState": {...}, "reward": X, "done": Y, "infos": Z}`;
+    const parsedResponse = await this.askGPT(prompt);
+
+    console.log("GOT:", parsedResponse)
+
     return {
-      newState: result.newState,
-      reward: result.reward,
-      done: result.done,
-      infos: result.infos
+      newState: parsedResponse.newState,
+      reward: parsedResponse.reward,
+      done: parsedResponse.done,
+      infos: parsedResponse.infos
     };
   }
+
 
   /**
    * Generate a prompt for the LLM based on the current goal and state archive.
    * @returns {string} - The generated prompt.
    */
   generatePrompt() {
-    let prompt = `Goal of the agent: ${this.goal}.\nCurrent state archive:\n`;
+    let prompt = systemPrompt
+    prompt += `Goal of the agent: ${this.goal}.\nCurrent state archive:\n`;
     Object.entries(this.archive).forEach(([stateId, stateInfo], i) => {
       const description = stateInfo.observation.descriptions.join(', ');
-      prompt += `${i}. Timestep ${stateInfo.stepCount}: ${description}.\n`;
+      prompt += `${i}. Timestep ${stateInfo.stepCount}: ${description}\n`;
     });
     prompt += `Select a state index between 0 and ${Object.keys(this.archive).length - 1}:\n`;
     prompt += `Reply concisely and exactly with the following JSON format:\n{"choice": X}\nwhere X is the index of the desired choice.`;
@@ -281,3 +315,13 @@ const actionList = [
   "generate an image",
   "request additional functionality"
 ];
+
+const systemPrompt = `You are an agent in a sandboxed web environment. You have access to tools and can interact with the environment.
+You will be prompted to perform systematic exploration in the style of Go-Explore.
+An archive will be maintained of interesting states found.
+You will be prompted to first reason about your plan and then:
+- Select a state from the archive that is the most promising, i.e., likely to lead to a solution or more novel states.
+- Explore from states intelligently, by picking new actions.
+- For each new state, you will be asked to decide if the state is interestingly new and should be added to the archive.
+------
+`;
