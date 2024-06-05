@@ -1,4 +1,5 @@
 const { NostrEvent } = require("@nostr-dev-kit/ndk");
+const { getLLMResponse, openai } = require('./openai')
 
 /**
  * @typedef {Object} Observation
@@ -41,7 +42,8 @@ class IGEAgent {
     this.goal = event.content;
     this.history = []; // Later rebuild this from local file or Nostr events
     this.actions = this.initializeActions(); // Hardcoded for now: later populate from NIP90
-    this.archive = {}; // Initialize the archive
+    this.archive = this.initializeArchive(); // Initialize the archive
+    // this.openai = openai
     console.log(`[IGEAgent-${event.id.slice(0, 8)}] Goal: ${this.goal}`);
     this.explore();
   }
@@ -81,8 +83,13 @@ class IGEAgent {
    */
   chooseNewState() {
     const prompt = this.generatePrompt();
+    console.log("------")
     console.log(prompt);
+    console.log("------")
     // Logic to choose a new state based on user or model feedback
+    // Construct the messages to be sent to the LLM
+    const messages = [{ role: "system", content: "You are an agent. Respond in JSON."}, ...[], { role: "user", content: prompt }];
+    getLLMResponse(messages, 'gpt-4-turbo')
   }
 
   /**
@@ -97,6 +104,60 @@ class IGEAgent {
     });
     prompt += `Select a state index between 0 and ${Object.keys(this.archive).length - 1}:\n`;
     return prompt;
+  }
+
+  /**
+   * Initialize the archive with some dummy data.
+   * @returns {Archive} The initialized archive.
+   */
+  initializeArchive() {
+    return {
+      "state1": {
+        observation: {
+          descriptions: ["Initial state", "Nothing much around"],
+          mission: this.goal,
+          direction: 0,
+          image: null
+        },
+        infos: {
+          step: 1,
+          descriptions: ["The agent is in an empty room"]
+        },
+        actsQueue: ["start"],
+        stepCount: 1,
+        visits: 1
+      },
+      "state2": {
+        observation: {
+          descriptions: ["Second state", "Found an interesting paper"],
+          mission: this.goal,
+          direction: 1,
+          image: null
+        },
+        infos: {
+          step: 2,
+          descriptions: ["The agent is reading a new paper"]
+        },
+        actsQueue: ["start", "move to paper"],
+        stepCount: 2,
+        visits: 1
+      },
+      "state3": {
+        observation: {
+          descriptions: ["Third state", "Analyzing the paper"],
+          mission: this.goal,
+          direction: 2,
+          image: null
+        },
+        infos: {
+          step: 3,
+          descriptions: ["The agent is analyzing the paper"]
+        },
+        actsQueue: ["start", "move to paper", "analyze"],
+        stepCount: 3,
+        visits: 1
+      }
+    };
   }
 
   /**

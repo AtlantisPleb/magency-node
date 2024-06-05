@@ -5,14 +5,14 @@ const openai = new OpenAI({
   apiKey: process.env['OPENAI_API_KEY'], // Ensure your API key is stored in the environment variable
 });
 
-async function getLLMResponse(model, messages) { // Added model as a parameter
+async function getLLMResponse(messages, model = "gpt-4o") { // Added model as a parameter
   try {
     const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4-turbo", // model,  // Use the model parameter
-      messages: messages,
+      model,
+      messages,
       response_format: { "type": "json_object" },
     });
-    console.log('Chat completion:', chatCompletion)
+    console.log('Chat completion:', chatCompletion.choices[0].message)
     return chatCompletion;
   } catch (error) {
     if (error instanceof OpenAI.APIError) {
@@ -24,4 +24,4 @@ async function getLLMResponse(model, messages) { // Added model as a parameter
   }
 }
 
-module.exports = { getLLMResponse };
+module.exports = { getLLMResponse, openai };
