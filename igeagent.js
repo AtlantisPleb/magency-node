@@ -136,13 +136,22 @@ class IGEAgent {
 
   async selectNextAction(state) {
     console.log("Current state: ", state);
-    if (!state || !state.observation || !state.observation.descriptions) {
+
+    if (!state || !state.observation) {
       console.error("Invalid state structure found in state:", state);
       throw new Error('Invalid state structure');
     }
 
+    let formattedState;
+    try {
+      formattedState = JSON.stringify(state.observation);
+    } catch (error) {
+      console.error("Error stringifying state observation:", error);
+      throw new Error('Error processing state observation');
+    }
+
     let prompt = systemPrompt;
-    prompt += `Based on the current state, select the next action:\nSTATE: ${state.observation.descriptions.join(', ')}\nACTION OPTIONS:\n`;
+    prompt += `Based on the current state, select the next action:\nSTATE: ${formattedState}\nACTION OPTIONS:\n`;
     actionList.forEach((action, index) => {
       prompt += `${index}: ${action}\n`;
     });
@@ -166,23 +175,31 @@ class IGEAgent {
 
     console.log("GOT:", parsedResponse);
 
-    if (!parsedResponse.observation || !parsedResponse.infos) {
+    // Extract the appropriate response based on possible structures
+    const response = parsedResponse.simulation || parsedResponse.state || parsedResponse;
+
+    if (!response.observation || (response.reward === undefined) || (response.done === undefined) || !response.infos) {
       throw new Error('Invalid action response structure');
     }
 
+    const { observation, reward, done, infos } = response;
+
+    // Construct and return the new state object
     return {
       newState: {
-        observation: parsedResponse.observation,
-        infos: parsedResponse.infos,
+        observation,
+        infos,
         actsQueue: this.currentState.actsQueue,
         stepCount: this.stepCount,
         visits: this.currentState.visits
       },
-      reward: parsedResponse.reward,
-      done: parsedResponse.done,
-      infos: parsedResponse.infos
+      reward,
+      done,
+      infos
     };
-  }
+}
+
+
 
   generatePrompt() {
     let prompt = systemPrompt;
