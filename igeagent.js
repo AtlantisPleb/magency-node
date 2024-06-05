@@ -175,6 +175,7 @@ class IGEAgent {
   selectNextAction(state) {
     // Logic for generating the prompt and asking GPT to select the best action
     let prompt = `Based on the current state, select the next action:\n${state.description}\nAction options:\n`;
+    console.log("ACTION PROMPT:", prompt)
     actionList.forEach((action, index) => {
       prompt += `${index}: ${action}\n`;
     });
