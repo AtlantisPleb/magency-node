@@ -268,7 +268,18 @@ module.exports = { IGEAgent };
  * @typedef {Object.<string, ArchiveState>} Archive
  */
 
-const actionList = ["read webpage HTML", "download a PDF by URL", "vector-embed a file", "retrieve a file embeddings", "prompt user for input", "request additional functionality"];
+const actionList = [
+  "summarize text",
+  "read webpage HTML",
+  "download a PDF by URL",
+  "extract text from PDF as markdown",
+  "extract text from media file",
+  "vector-embed a file",
+  "retrieve a file embeddings",
+  "prompt user for input",
+  "generate an image",
+  "request additional functionality"
+];
 const env = {
   step(action) {
     // Example implementation for environment step function
