@@ -28,6 +28,21 @@ const { getLLMResponse, openai } = require('./openai');
  * @typedef {Object.<string, ArchiveState>} Archive
  */
 
+// wtf
+// Assuming actionList and env are defined somewhere in the code
+const actionList = ["turn left", "turn right", "go forward", "pick up", "drop", "toggle"];
+const env = {
+  step(action) {
+    // Example implementation for environment step function
+    return {
+      newState: { description: "Some new state", actionsRemaining: [] },
+      reward: 1,
+      done: false,
+      infos: { description: "Information about state" }
+    };
+  }
+};
+
 /**
  * A basic agent implementing Intelligent Go-Explore (IGE) in a web environment
  * and using a shared history archive and registry of actions via the Nostr protocol.
@@ -72,8 +87,9 @@ class IGEAgent {
    * Choose a new state based on the current state archive.
    */
   async chooseNewState() {
+    console.log("now what")
     const prompt = this.generatePrompt();
-    // console.log(`Generated prompt for LLM: ${prompt}`);
+    console.log(`Generated prompt for LLM: ${prompt}`);
     const messages = [{ role: "system", content: "You are an agent. Respond in JSON." }, { role: "user", content: prompt }];
     const response = await getLLMResponse(messages, 'gpt-4-turbo');
     const choice = JSON.parse(response).choice;
@@ -92,41 +108,30 @@ class IGEAgent {
     console.log(`Continuing exploration from step count: ${this.stepCount}`);
 
     if (this.stepCount < 10) {
-      // Step 1: Check if we need to choose a new state
-      const selectedState = this.chooseNewState();
+      this.currentState = this.chooseNewState();
 
-      if (selectedState) {
-        console.log('Chosen new state from archive:', selectedState);
-        this.currentState = selectedState;
+      if (this.currentState) {
+        console.log('Chosen new state from archive:', this.currentState);
       } else {
-        console.log('Continuing with current state:', this.currentState);
+        console.log('No valid states found in archive; possibly need to improve exploration.');
+        return;
       }
 
-      // Step 2: Select the next action to take
       const actionIndex = this.selectNextAction(this.currentState);
       console.log('Selected action index:', actionIndex);
 
-      // Execute the action and observe the result
       const actionResult = this.executeAction(actionIndex);
-      const nextState = actionResult.newState;
-      const reward = actionResult.reward;
-      const done = actionResult.done;
-      const infos = actionResult.infos;
 
-      this.currentState = nextState;
+      this.currentState = actionResult.newState;
       this.stepCount += 1;
 
-      // Step 3: Decide if new state should be added to the archive
-      if (this.shouldAddToArchive(infos)) {
-        this.archive.push(this.currentState);
+      if (this.shouldAddToArchive(actionResult.infos)) {
+        this.archive[this.generateKey(actionResult.newState)] = actionResult.newState;
         console.log('Added new state to archive:', this.currentState);
       }
 
-      // Recursive call to continue exploration
       this.exploreNextStep();
-
     } else {
-      // Step 4: Termination of exploration
       console.log('Exploration complete.');
     }
   }
@@ -149,23 +154,22 @@ class IGEAgent {
   }
 
   // Helper function for choosing a new state
-  chooseNewState() {
-    // Logic for selecting a new state from the archive, similar to get_filtered_states
-    const choices = this.archive.filter(state => state.actionsRemaining.length > 0);
-    if (choices.length === 0) {
-      return null;
-    }
+  // chooseNewState() {
+  //   const choices = Object.values(this.archive).filter(state => state.actionsRemaining && state.actionsRemaining.length > 0);
 
-    // Generate prompt and ask GPT which state to choose
-    const prompt = `Select a state from the following options:\n`;
-    choices.forEach((state, index) => {
-      prompt += `${index}: ${state.description}\n`;
-    });
-    prompt += "Select an index between 0 and " + (choices.length - 1);
+  //   if (choices.length === 0) {
+  //     return null;
+  //   }
 
-    const stateIndex = this.askGPT(prompt);
-    return choices[stateIndex];
-  }
+  //   const prompt = `Select a state from the following options:\n`;
+  //   for (let i = 0; i < choices.length; i++) {
+  //     prompt += `${i}: ${choices[i].infos.descriptions.join(", ")}\n`;
+  //   }
+  //   prompt += "Select an index between 0 and " + (choices.length - 1);
+
+  //   const stateIndex = this.askGPT(prompt);
+  //   return choices[stateIndex];
+  // }
 
   // Helper function for selecting the next action based on the current state
   selectNextAction(state) {
@@ -182,6 +186,7 @@ class IGEAgent {
 
   // Helper function to execute the selected action
   executeAction(action) {
+    console.log("TRYING TO EXECUTE ACTION:", action)
     // Logic for executing the action and observing the result
     // Here we assume a method env.step(action) that returns the required result
     throw new Error("executeAction not implemented.");
@@ -200,6 +205,7 @@ class IGEAgent {
    */
   generatePrompt() {
     let prompt = `Goal of the agent: ${this.goal}.\nCurrent state archive:\n`;
+    console.log(prompt)
     Object.entries(this.archive).forEach(([stateId, stateInfo], i) => {
       const description = stateInfo.infos.descriptions.join(', ');
       prompt += `${i}. Timestep ${stateInfo.stepCount}: ${description}.\n`;
