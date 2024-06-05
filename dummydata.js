@@ -1,49 +1,26 @@
+// dummydata.js
 function initializeArchive() {
   return {
-    "state1": {
-      observation: {
-        descriptions: ["Initial state", "Nothing much around"],
-        mission: this.goal,
-        direction: 0,
-        image: null
-      },
-      infos: {
-        step: 1,
-        descriptions: ["The agent is in an empty room"]
-      },
-      actsQueue: ["start"],
+    0: {
+      observation: { descriptions: ["Initial state", "Nothing much around."] },
+      infos: { step: 1, descriptions: ["Nothing much around."] },
+      actsQueue: [],
       stepCount: 1,
-      visits: 1
+      visits: 0
     },
-    "state2": {
-      observation: {
-        descriptions: ["Second state", "Found an interesting paper"],
-        mission: this.goal,
-        direction: 1,
-        image: null
-      },
-      infos: {
-        step: 2,
-        descriptions: ["The agent is reading a new paper"]
-      },
-      actsQueue: ["start", "move to paper"],
+    1: {
+      observation: { descriptions: ["Second state", "Found an interesting paper."] },
+      infos: { step: 2, descriptions: ["Found an interesting paper."] },
+      actsQueue: [],
       stepCount: 2,
-      visits: 1
+      visits: 0
     },
-    "state3": {
-      observation: {
-        descriptions: ["Third state", "Analyzing the paper"],
-        mission: this.goal,
-        direction: 2,
-        image: null
-      },
-      infos: {
-        step: 3,
-        descriptions: ["The agent is analyzing the paper"]
-      },
-      actsQueue: ["start", "move to paper", "analyze"],
+    2: {
+      observation: { descriptions: ["Third state", "Analyzing the paper."] },
+      infos: { step: 3, descriptions: ["Analyzing the paper."] },
+      actsQueue: [],
       stepCount: 3,
-      visits: 1
+      visits: 0
     }
   };
 }

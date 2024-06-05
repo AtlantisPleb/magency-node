@@ -2,38 +2,59 @@ const { initializeActions, initializeArchive } = require('./dummydata');
 const { getLLMResponse } = require('./openai');
 
 class IGEAgent {
-  /**
-   * Constructor for the IGEAgent class.
-   * Initializes the agent's goal, state, archives, and starts the exploration process.
-   * @param {Object} event - The event payload that includes the agent's goal and other metadata.
-   */
   constructor(event) {
+    // Store the initial event object, which contains information about the goal.
     this.event = event;
+
+    // Extract and store the goal from the event content for use in decision-making.
     this.goal = event.content;
+
+    // Initialize an empty array to track the agent's past actions and observations.
     this.history = [];
+
+    // Prepare a list of possible actions that the agent can perform. Hardcoded for now.
     this.actions = initializeActions();
+
+    // Set up an archive to store visited states and related information for future reference. Hardcoded for now.
     this.archive = initializeArchive();
+
+    // Initialize the step counter to track the number of actions taken by the agent.
     this.stepCount = 0;
+
+    // Initialize an empty queue to manage the sequence of actions to be performed.
     this.actsQueue = [];
+
+    // Placeholder for the agent's current state; will later hold detailed information about the state.
     this.currentState = null;
     console.log(`[IGEAgent-${event.id.slice(0, 8)}] Goal: ${this.goal}`);
     this.explore();
   }
 
   /**
-   * Resets the agent's state to a previously chosen state from the archive.
-   * @param {ArchiveState} chosenState - The state to which the agent will be restored.
+   * Reset the current state of the agent to a chosen archived state.
+   * This involves clearing the current history and actsQueue, updating stepCount, and setting the current state.
+   * @param {ArchiveState} chosenState - The archived state to which the agent should revert.
    */
   resetState(chosenState) {
+    // Clear the current history, as we are reverting to a previous state.
     this.history = [];
+
+    // Set the actsQueue to the actions from the chosen archived state.
     this.actsQueue = [...chosenState.actsQueue];
+
+    // Update the step counter to match the chosen archived state.
     this.stepCount = chosenState.stepCount;
+
+    // Set the current state to the chosen archived state.
+    this.currentState = chosenState;
+
     console.log(`Restored to state with stepCount: ${this.stepCount}, actions queue length: ${this.actsQueue.length}`);
     console.log("We are now at: ", chosenState.observation.descriptions);
   }
 
+
   /**
-   * Begins the exploration process from the current step count.
+   * Start exploration from the current step count.
    */
   explore() {
     console.log(`Starting exploration from step count: ${this.stepCount}`);
@@ -41,24 +62,55 @@ class IGEAgent {
   }
 
   /**
-   * Chooses a new state from the archive based on a prompt generated and sent to a language model.
-   * Updates the agent to the chosen state and continues exploration.
+   * Choose a new state for the agent to explore based on the response from the LLM.
+   * This involves generating a prompt for the LLM and processing the response.
    */
   async chooseNewState() {
-    console.log("Choosing a new state...");
-    const prompt = this.generatePrompt();
-    console.log(`Generated prompt for LLM: ${prompt}`);
-    const messages = [{ role: "system", content: "You are an agent. Respond in JSON." }, { role: "user", content: prompt }];
-    const response = await getLLMResponse(messages, 'gpt-4-turbo');
-    const choice = JSON.parse(response).choice;
-    const state = Object.values(this.archive)[choice];
-    console.log(`Chosen state index: ${choice}, with stepCount: ${state.stepCount}`);
-    this.resetState(state);
-    this.exploreNextStep();
+    try {
+      console.log("Choosing a new state...");
+
+      // Generate the prompt for the LLM.
+      const prompt = this.generatePrompt();
+      console.log(`Generated prompt for LLM: ${prompt}`);
+
+      // Define the messages to send to the LLM.
+      const messages = [
+        { role: "system", content: "You are an agent. Respond in JSON." },
+        { role: "user", content: prompt }
+      ];
+
+      // Get the response from the LLM.
+      const response = await getLLMResponse(messages, 'gpt-4-turbo');
+      console.log(`Received response from LLM: ${response}`);
+
+      // Parse the LLM's response and extract the chosen state index.
+      const parsedResponse = JSON.parse(response);
+      const choice = parsedResponse.choice;
+
+      // Validate the choice against the archive.
+      if (this.archive[choice] === undefined) {
+        throw new Error(`Invalid choice index: ${choice}. No corresponding state in the archive.`);
+      }
+
+      // Get the chosen state from the archive.
+      const state = this.archive[choice];
+      console.log(`Chosen state index: ${choice}, with stepCount: ${state.stepCount}`);
+
+      // Reset the state to the chosen state and continue exploration.
+      this.resetState(state);
+      this.exploreNextStep();
+    } catch (error) {
+      console.error('Error in chooseNewState:', error);
+    }
+  }
+
+  generateKey(state) {
+    // Generate a unique key for the state, assuming state has some unique identifier
+    return JSON.stringify(state);
   }
 
   /**
-   * Continues the exploration process, selecting and executing actions until the step limit is reached.
+   * Continue exploring the next steps from the current state.
    */
   async exploreNextStep() {
     console.log(`Continuing exploration from step count: ${this.stepCount}`);
@@ -83,8 +135,8 @@ class IGEAgent {
   }
 
   /**
-   * Determines whether a new state should be added to the archive based on its information.
-   * @param {Infos} infos - Additional information about the new state.
+   * Determine if the new state should be added to the archive.
+   * @param {Infos} infos - Information about the new state.
    * @returns {boolean} - Whether the new state should be added to the archive.
    */
   shouldAddToArchive(infos) {
@@ -94,9 +146,9 @@ class IGEAgent {
   }
 
   /**
-   * Simulates asking a language model whether to add a new state to the archive.
-   * @param {string} prompt - The prompt describing the new state.
-   * @returns {number} - The index returned by the language model (0 or 1).
+   * Ask GPT for a response based on a given prompt.
+   * @param {string} prompt - The prompt to provide to GPT.
+   * @returns {number} - The response from GPT.
    */
   askGPT(prompt) {
     console.log('GPT prompt:', prompt);
@@ -104,14 +156,15 @@ class IGEAgent {
   }
 
   /**
-   * Selects the next action for the agent to take based on the current state.
-   * @param {ArchiveState} state - The current state of the agent.
+   * Select the next action to take based on the current state.
+   * @param {ArchiveState} state - The current state.
    * @returns {number} - The index of the selected action.
    * @throws {Error} - If the state structure is invalid.
    */
   selectNextAction(state) {
-    console.log(state);
+    console.log("Current state: ", state);
     if (!state || !state.observation || !state.observation.descriptions) {
+      console.error("Invalid state structure found in state:", state);
       throw new Error('Invalid state structure');
     }
 
@@ -126,9 +179,9 @@ class IGEAgent {
   }
 
   /**
-   * Executes an action and returns the result, including the new state.
+   * Execute a selected action and return the result.
    * @param {number} action - The index of the action to execute.
-   * @returns {Object} - The result of the action, including the new state, reward, completion status, and additional info.
+   * @returns {Object} - The result of executing the action.
    */
   executeAction(action) {
     console.log("Executing action:", action);
@@ -143,7 +196,7 @@ class IGEAgent {
   }
 
   /**
-   * Generates a prompt to ask the language model to choose the next state from the archive.
+   * Generate a prompt for the LLM based on the current goal and state archive.
    * @returns {string} - The generated prompt.
    */
   generatePrompt() {
