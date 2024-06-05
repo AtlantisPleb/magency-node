@@ -1,10 +1,9 @@
 const { getEventHash, signEvent, getPublicKey } = require('nostr-tools_1_1_1');
-const { NDKEvent } = require('@nostr-dev-kit/ndk');
 const { initializeActions, initializeArchive } = require('./dummydata');
 const { getLLMResponse } = require('./openai');
 
 require('dotenv').config();
-let sk = process.env['NOSTR_SK']
+let sk = process.env['NOSTR_SK'];
 let pk = getPublicKey(sk);
 
 class IGEAgent {
@@ -30,11 +29,26 @@ class IGEAgent {
       created_at: Math.floor(Date.now() / 1000),
       tags: [],
       content: JSON.stringify(state),
-    }
+    };
     event.id = getEventHash(event);
     event.sig = signEvent(event, sk);
     this.wsClient.send(JSON.stringify(["EVENT", event]));
-    console.log("PUBLISHED EVENT 38001:", event)
+    console.log("PUBLISHED EVENT 38001:", event);
+  }
+
+  // New method to notify action taken
+  async notifyActionTaken(action) {
+    let event = {
+      kind: 38002,
+      pubkey: pk,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content: JSON.stringify(action),
+    };
+    event.id = getEventHash(event);
+    event.sig = signEvent(event, sk);
+    this.wsClient.send(JSON.stringify(["EVENT", event]));
+    console.log("PUBLISHED EVENT 38002:", event);
   }
 
   resetState(chosenState) {
@@ -156,7 +170,7 @@ class IGEAgent {
       prompt += `${index}: ${action}\n`;
     });
     prompt += "Select an index between 0 and " + (actionList.length - 1);
-    prompt += `Reply concisely and exactly with the following JSON format:\n{"choice": X, "comment": Y}\nwhere X is the index of the desired choice and Y is a one-sentence comment explaining your choice.`;
+    prompt += `\nReply concisely and exactly with the following JSON format:\n{"choice": X, "comment": Y}\nwhere X is the index of the desired choice and Y is a one-sentence comment explaining your choice.`;
 
     const actionIndex = await this.askGPT(prompt);
     const { choice, comment } = actionIndex;
@@ -184,6 +198,9 @@ class IGEAgent {
 
     const { observation, reward, done, infos } = response;
 
+    // Notify about the action taken
+    await this.notifyActionTaken({ action: actionPrompt, newState: response });
+
     // Construct and return the new state object
     return {
       newState: {
@@ -197,9 +214,7 @@ class IGEAgent {
       done,
       infos
     };
-}
-
-
+  }
 
   generatePrompt() {
     let prompt = systemPrompt;
