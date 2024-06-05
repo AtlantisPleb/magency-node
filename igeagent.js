@@ -30,7 +30,7 @@ const { getLLMResponse, openai } = require('./openai')
 
 /**
  * A basic agent implementing Intelligent Go-Explore (IGE) in a web environment
- * and using shared archive & registry of actions via the Nostr protocol.
+ * and using shared 1) history archive & 2) registry of actions via the Nostr protocol.
  */
 class IGEAgent {
   /**
@@ -52,36 +52,14 @@ class IGEAgent {
    * Begin exploration process for a given event.
    */
   explore() {
-    // Get the history for this event
-    const history = this.getHistory();
-
     // Given the history and available actions, decide what to do next
     this.chooseNewState();
   }
 
   /**
-   * Retrieve or create history for a given event.
-   * @returns {Object} The event history.
-   */
-  getHistory() {
-    let event = this.event;
-    // Look up history by event.id
-    let thisEventHistory;
-    if (this.history.find((element) => element.id === event.id)) {
-      // If so, return the response from this.history[]
-      thisEventHistory = this.history.find((element) => element.id === event.id);
-    } else {
-      // If not, create a new entry in this.history[] with event.id
-      thisEventHistory = { id: event.id, actions: [] };
-      this.history.push(thisEventHistory);
-    }
-    return thisEventHistory;
-  }
-
-  /**
    * Choose a new state based on the current state archive.
    */
-  chooseNewState() {
+  async chooseNewState() {
     const prompt = this.generatePrompt();
     console.log("------")
     console.log(prompt);
@@ -89,7 +67,12 @@ class IGEAgent {
     // Logic to choose a new state based on user or model feedback
     // Construct the messages to be sent to the LLM
     const messages = [{ role: "system", content: "You are an agent. Respond in JSON."}, ...[], { role: "user", content: prompt }];
-    getLLMResponse(messages, 'gpt-4-turbo')
+    let response = await getLLMResponse(messages, 'gpt-4-turbo')
+    console.log(response)
+    let choice = JSON.parse(response).choice;
+    // Select the state based on the choice
+    let state = Object.values(this.archive)[choice];
+    console.log(`Selected state:`, state);
   }
 
   /**
@@ -103,6 +86,9 @@ class IGEAgent {
       prompt += `${i}. Timestep ${stateInfo.stepCount}: ${description}.\n`;
     });
     prompt += `Select a state index between 0 and ${Object.keys(this.archive).length - 1}:\n`;
+    prompt += `Reply concisely and exactly with the following JSON format:
+{"choice": X}
+where X is the index of the desired choice.`;
     return prompt;
   }
 

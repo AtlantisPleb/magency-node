@@ -12,8 +12,7 @@ async function getLLMResponse(messages, model = "gpt-4o") { // Added model as a 
       messages,
       response_format: { "type": "json_object" },
     });
-    console.log('Chat completion:', chatCompletion.choices[0].message)
-    return chatCompletion;
+    return chatCompletion.choices[0].message.content;
   } catch (error) {
     if (error instanceof OpenAI.APIError) {
       console.error('APIError:', error.message);
