@@ -214,6 +214,7 @@ class IGEAgent {
   executeAction(action) {
     console.log("Executing action:", action);
     // Simulated example; you need to replace it with real implementation
+    throw new Error("update outdated executeAction function.")
     const result = env.step(action);
     return {
       newState: result.newState,
@@ -280,17 +281,3 @@ const actionList = [
   "generate an image",
   "request additional functionality"
 ];
-const env = {
-  step(action) {
-    // Example implementation for environment step function
-    return {
-      newState: {
-        observation: { descriptions: ["Some new state"] },
-        actionsRemaining: []
-      },
-      reward: 1,
-      done: false,
-      infos: { description: "Information about state" }
-    };
-  }
-};
