@@ -18,6 +18,7 @@
   "homepage": "https://github.com/AtlantisPleb/magency-node#readme",
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.8.2",
+    "nostr-tools_1_1_1": "npm:nostr-tools@^1.1.1",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

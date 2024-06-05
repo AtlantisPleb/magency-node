@@ -1,8 +1,20 @@
+const { getEventHash, signEvent, getPublicKey } = require('nostr-tools_1_1_1');
+const { NDKEvent } = require('@nostr-dev-kit/ndk');
 const { initializeActions, initializeArchive } = require('./dummydata');
 const { getLLMResponse } = require('./openai');
 
+require('dotenv').config();
+let sk = process.env['NOSTR_SK']
+let pk = getPublicKey(sk);
+
 class IGEAgent {
-  constructor(event) {
+  constructor(event, wsClient, ndk) {
+    // Store the WebSocket client for sending messages.
+    this.wsClient = wsClient;
+
+    // Store the NDK instance for sending events.
+    this.ndk = ndk;
+
     // Store the initial event object, which contains information about the goal.
     this.event = event;
 
@@ -28,6 +40,20 @@ class IGEAgent {
     this.currentState = null;
     console.log(`[IGEAgent-${event.id.slice(0, 8)}] Goal: ${this.goal}`);
     this.explore();
+  }
+
+  async notifyArchiveEvent(state) {
+    let event = {
+      kind: 38001,
+      pubkey: pk,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content: JSON.stringify(state),
+    }
+    event.id = getEventHash(event)
+    event.sig = signEvent(event, sk)
+    this.wsClient.send(JSON.stringify(["EVENT", event]));
+    console.log("PUBLISHED EVENT 38001:", event)
   }
 
   /**
@@ -126,6 +152,7 @@ class IGEAgent {
       if (this.shouldAddToArchive(actionResult.infos)) {
         this.archive[this.generateKey(actionResult.newState)] = actionResult.newState;
         console.log('Added new state to archive:', this.currentState);
+        await this.notifyArchiveEvent(actionResult.newState);
       }
 
       this.exploreNextStep();
