@@ -2,6 +2,11 @@ const { initializeActions, initializeArchive } = require('./dummydata');
 const { getLLMResponse } = require('./openai');
 
 class IGEAgent {
+  /**
+   * Constructor for the IGEAgent class.
+   * Initializes the agent's goal, state, archives, and starts the exploration process.
+   * @param {Object} event - The event payload that includes the agent's goal and other metadata.
+   */
   constructor(event) {
     this.event = event;
     this.goal = event.content;
@@ -15,6 +20,10 @@ class IGEAgent {
     this.explore();
   }
 
+  /**
+   * Resets the agent's state to a previously chosen state from the archive.
+   * @param {ArchiveState} chosenState - The state to which the agent will be restored.
+   */
   resetState(chosenState) {
     this.history = [];
     this.actsQueue = [...chosenState.actsQueue];
@@ -23,11 +32,18 @@ class IGEAgent {
     console.log("We are now at: ", chosenState.observation.descriptions);
   }
 
+  /**
+   * Begins the exploration process from the current step count.
+   */
   explore() {
     console.log(`Starting exploration from step count: ${this.stepCount}`);
     this.chooseNewState();
   }
 
+  /**
+   * Chooses a new state from the archive based on a prompt generated and sent to a language model.
+   * Updates the agent to the chosen state and continues exploration.
+   */
   async chooseNewState() {
     console.log("Choosing a new state...");
     const prompt = this.generatePrompt();
@@ -41,6 +57,9 @@ class IGEAgent {
     this.exploreNextStep();
   }
 
+  /**
+   * Continues the exploration process, selecting and executing actions until the step limit is reached.
+   */
   async exploreNextStep() {
     console.log(`Continuing exploration from step count: ${this.stepCount}`);
 
@@ -63,19 +82,35 @@ class IGEAgent {
     }
   }
 
+  /**
+   * Determines whether a new state should be added to the archive based on its information.
+   * @param {Infos} infos - Additional information about the new state.
+   * @returns {boolean} - Whether the new state should be added to the archive.
+   */
   shouldAddToArchive(infos) {
     const prompt = `Should the new state be added to the archive?\nNew state:\n${infos.description}\nChoices:\n0. Don't Add\n1. Add`;
     const addIndex = this.askGPT(prompt);
     return addIndex === 1;
   }
 
+  /**
+   * Simulates asking a language model whether to add a new state to the archive.
+   * @param {string} prompt - The prompt describing the new state.
+   * @returns {number} - The index returned by the language model (0 or 1).
+   */
   askGPT(prompt) {
     console.log('GPT prompt:', prompt);
     return Math.floor(Math.random() * 2);
   }
 
+  /**
+   * Selects the next action for the agent to take based on the current state.
+   * @param {ArchiveState} state - The current state of the agent.
+   * @returns {number} - The index of the selected action.
+   * @throws {Error} - If the state structure is invalid.
+   */
   selectNextAction(state) {
-    console.log(state)
+    console.log(state);
     if (!state || !state.observation || !state.observation.descriptions) {
       throw new Error('Invalid state structure');
     }
@@ -90,6 +125,11 @@ class IGEAgent {
     return actionIndex;
   }
 
+  /**
+   * Executes an action and returns the result, including the new state.
+   * @param {number} action - The index of the action to execute.
+   * @returns {Object} - The result of the action, including the new state, reward, completion status, and additional info.
+   */
   executeAction(action) {
     console.log("Executing action:", action);
     // Simulated example; you need to replace it with real implementation
@@ -102,6 +142,10 @@ class IGEAgent {
     };
   }
 
+  /**
+   * Generates a prompt to ask the language model to choose the next state from the archive.
+   * @returns {string} - The generated prompt.
+   */
   generatePrompt() {
     let prompt = `Goal of the agent: ${this.goal}.\nCurrent state archive:\n`;
     Object.entries(this.archive).forEach(([stateId, stateInfo], i) => {
