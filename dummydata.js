@@ -1,4 +1,3 @@
-// dummydata.js
 function initializeArchive() {
   return {
     0: {
@@ -6,21 +5,24 @@ function initializeArchive() {
       infos: { step: 1, descriptions: ["Nothing much around."] },
       actsQueue: [],
       stepCount: 1,
-      visits: 0
+      visits: 0,
+      metadata: {}
     },
     1: {
-      observation: { descriptions: ["Second state", "Found an interesting paper."] },
-      infos: { step: 2, descriptions: ["Found an interesting paper."] },
+      observation: { descriptions: ["Second state", "Found an interesting document."] },
+      infos: { step: 2, descriptions: ["Found an interesting document."] },
       actsQueue: [],
       stepCount: 2,
-      visits: 0
+      visits: 0,
+      metadata: { documentId: "doc123" }
     },
     2: {
-      observation: { descriptions: ["Third state", "Analyzing the paper."] },
-      infos: { step: 3, descriptions: ["Analyzing the paper."] },
+      observation: { descriptions: ["Third state", "Processing the document."] },
+      infos: { step: 3, descriptions: ["Processing the document."] },
       actsQueue: [],
       stepCount: 3,
-      visits: 0
+      visits: 0,
+      metadata: { documentId: "doc123" }
     }
   };
 }
@@ -28,49 +30,69 @@ function initializeArchive() {
 function initializeActions() {
   return [
     {
-      name: "searchLatestArxivPapers",
-      description: "Searches the latest arXiv papers for new insights based on a query and fetches up to a specified number of papers.",
+      name: "readWebpageHTML",
+      description: "Reads the HTML content of a specified webpage.",
       schema: {
         type: "object",
         properties: {
-          query: { type: "string", description: "The search query for arXiv papers." },
-          maxResults: { type: "integer", description: "The maximum number of papers to fetch." }
+          url: { type: "string", description: "The URL of the webpage to read." }
         },
-        required: ["query"]
+        required: ["url"]
       }
     },
     {
-      name: "summarizePaper",
-      description: "Summarizes the content of a given arXiv paper based on its ID.",
+      name: "downloadPdfByUrl",
+      description: "Downloads a PDF from a specified URL.",
       schema: {
         type: "object",
         properties: {
-          paperId: { type: "string", description: "The ID of the arXiv paper to summarize." }
+          url: { type: "string", description: "The URL of the PDF to download." }
         },
-        required: ["paperId"]
+        required: ["url"]
       }
     },
     {
-      name: "translatePaper",
-      description: "Translates a given arXiv paper to a specified language.",
+      name: "vectorEmbedFile",
+      description: "Creates vector embeddings for the content of a specified file.",
       schema: {
         type: "object",
         properties: {
-          paperId: { type: "string", description: "The ID of the arXiv paper to translate." },
-          targetLanguage: { type: "string", description: "The target language for translation." }
+          filePath: { type: "string", description: "The file path of the document to embed." }
         },
-        required: ["paperId", "targetLanguage"]
+        required: ["filePath"]
       }
     },
     {
-      name: "generateInsights",
-      description: "Generates summarized insights from a set of arXiv papers based on their IDs.",
+      name: "retrieveFileEmbeddings",
+      description: "Retrieves the vector embeddings of a specified file.",
       schema: {
         type: "object",
         properties: {
-          paperIds: { type: "array", items: { type: "string" }, description: "An array of arXiv paper IDs to generate insights from." }
+          filePath: { type: "string", description: "The file path of the document whose embeddings are to be retrieved." }
         },
-        required: ["paperIds"]
+        required: ["filePath"]
+      }
+    },
+    {
+      name: "promptUserForInput",
+      description: "Prompts the user for additional input during a process.",
+      schema: {
+        type: "object",
+        properties: {
+          message: { type: "string", description: "The message to display to the user." }
+        },
+        required: ["message"]
+      }
+    },
+    {
+      name: "requestAdditionalFunctionality",
+      description: "Requests additional functionality that may not be currently supported.",
+      schema: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "Detailed description of the requested functionality." }
+        },
+        required: ["description"]
       }
     }
   ];

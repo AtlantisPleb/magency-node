@@ -179,6 +179,7 @@ class IGEAgent {
    */
   askGPT(prompt) {
     console.log('GPT prompt:', prompt);
+    throw new Error("Now implement askGPT.")
     return Math.floor(Math.random() * 2);
   }
 
@@ -267,7 +268,7 @@ module.exports = { IGEAgent };
  * @typedef {Object.<string, ArchiveState>} Archive
  */
 
-const actionList = ["turn left", "turn right", "go forward", "pick up", "drop", "toggle"];
+const actionList = ["read webpage HTML", "download a PDF by URL", "vector-embed a file", "retrieve a file embeddings", "prompt user for input", "request additional functionality"];
 const env = {
   step(action) {
     // Example implementation for environment step function
