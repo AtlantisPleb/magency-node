@@ -43,9 +43,19 @@ class IGEAgent {
     this.history = []; // Later rebuild this from local file or Nostr events
     this.actions = this.initializeActions(); // Hardcoded for now: later populate from NIP90
     this.archive = this.initializeArchive(); // Initialize the archive
-    // this.openai = openai
     console.log(`[IGEAgent-${event.id.slice(0, 8)}] Goal: ${this.goal}`);
     this.explore();
+  }
+
+  /**
+   * Reset the internal state of the agent to a given state.
+   * @param {ArchiveState} chosenState - The state to reset to.
+   */
+  resetState(chosenState) {
+    this.history = []; // Clear history
+    this.actsQueue = [...chosenState.actsQueue]; // Reset actions queue
+    this.stepCount = chosenState.stepCount; // Set step count
+    console.log(`State reset to chosen state with stepCount: ${this.stepCount}`);
   }
 
   /**
@@ -66,13 +76,33 @@ class IGEAgent {
     console.log("------")
     // Logic to choose a new state based on user or model feedback
     // Construct the messages to be sent to the LLM
-    const messages = [{ role: "system", content: "You are an agent. Respond in JSON."}, ...[], { role: "user", content: prompt }];
+    const messages = [{ role: "system", content: "You are an agent. Respond in JSON." }, { role: "user", content: prompt }];
     let response = await getLLMResponse(messages, 'gpt-4-turbo')
     console.log(response)
     let choice = JSON.parse(response).choice;
     // Select the state based on the choice
     let state = Object.values(this.archive)[choice];
     console.log(`Selected state:`, state);
+
+    // Reset state to the selected state
+    this.resetState(state);
+
+    // Continue exploration after resetting the state
+    this.exploreNextStep();
+  }
+
+  /**
+   * Continue exploration based on the new state.
+   */
+  exploreNextStep() {
+    // Your logic for the next steps of exploration
+    console.log(`Exploring from step count: ${this.stepCount}`);
+    // For example, you could have some logic to decide what to do next based on history, steps, etc.
+    if (this.stepCount < 10) { // Hypothetical end condition for exploration
+      this.chooseNewState(); // Continue the exploration loop
+    } else {
+      console.log(`Exploration complete.`);
+    }
   }
 
   /**
