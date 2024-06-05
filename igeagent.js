@@ -192,11 +192,11 @@ class IGEAgent {
     // Extract the appropriate response based on possible structures
     const response = parsedResponse.simulation || parsedResponse.state || parsedResponse;
 
-    if (!response.observation || (response.reward === undefined) || (response.done === undefined) || !response.infos) {
-      throw new Error('Invalid action response structure');
-    }
-
-    const { observation, reward, done, infos } = response;
+    // Fill in missing fields with dummy data
+    const observation = response.observation || { message: 'No observation provided' };
+    const reward = response.reward !== undefined ? response.reward : 0;
+    const done = response.done !== undefined ? response.done : false;
+    const infos = response.infos || 'No additional info provided';
 
     // Notify about the action taken
     await this.notifyActionTaken({ action: actionPrompt, newState: response });
